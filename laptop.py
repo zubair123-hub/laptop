@@ -1,99 +1,35 @@
-from flask import Flask, request, jsonify
-import subprocess
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
-import datetime
 
-app = Flask(__name__)
+HOST = "0.0.0.0"
+PORT = 5000
 
-PASSWORD = "12345"
+class MyServer(BaseHTTPRequestHandler):
 
-HTML_FILE = os.path.expanduser("~/Desktop/zubair.html")
+    def do_GET(self):
 
-browser_process = None
+        if self.path == "/open":
+            os.system("xdg-open ~/Desktop/zubair.html")
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"HTML Opened")
 
-def log(text):
-    now = datetime.datetime.now().strftime("%H:%M:%S")
-    print(f"[{now}] {text}")
+        elif self.path == "/close":
+            os.system("pkill firefox")
+            os.system("pkill chromium")
+            os.system("pkill chrome")
 
-def open_html():
-    global browser_process
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Browser Closed")
 
-    browsers = [
-        "firefox",
-        "chromium",
-        "google-chrome"
-    ]
+        else:
+            self.send_response(404)
+            self.end_headers()
 
-    for browser in browsers:
-        if os.system(f"which {browser} > /dev/null 2>&1") == 0:
-            browser_process = subprocess.Popen(
-                [browser, HTML_FILE]
-            )
+server = HTTPServer((HOST, PORT), MyServer)
 
-            log(f"{browser} opened")
-            return f"{browser} opened"
+print("Server Running...")
+print("Port:", PORT)
 
-    subprocess.Popen(["xdg-open", HTML_FILE])
-
-    log("opened with xdg-open")
-    return "opened"
-
-def close_browser():
-    browsers = [
-        "firefox",
-        "chromium",
-        "chrome",
-        "google-chrome"
-    ]
-
-    for browser in browsers:
-        os.system(f"pkill {browser}")
-
-    log("browser closed")
-    return "closed"
-
-@app.route("/cmd", methods=["POST"])
-def cmd():
-
-    password = request.form.get("password")
-    command = request.form.get("command")
-
-    if password != PASSWORD:
-        log("wrong password")
-        return jsonify({
-            "status": "error",
-            "message": "wrong password"
-        })
-
-    if not os.path.exists(HTML_FILE):
-        return jsonify({
-            "status": "error",
-            "message": "zubair.html not found"
-        })
-
-    if command == "open":
-        result = open_html()
-
-    elif command == "close":
-        result = close_browser()
-
-    elif command == "restart":
-        close_browser()
-        result = open_html()
-
-    else:
-        result = "unknown command"
-
-    return jsonify({
-        "status": "success",
-        "message": result
-    })
-
-@app.route("/")
-def home():
-    return "Advanced Control Server Running"
-
-app.run(
-    host="0.0.0.0",
-    port=5000
-)
+server.serve_forever()
