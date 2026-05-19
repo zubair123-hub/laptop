@@ -1,35 +1,36 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from flask import Flask, request
 import os
 
-HOST = "0.0.0.0"
-PORT = 5000
+app = Flask(__name__)
 
-class MyServer(BaseHTTPRequestHandler):
+SECRET_KEY = "12345"
 
-    def do_GET(self):
+@app.route("/command", methods=["POST"])
+def command():
 
-        if self.path == "/open":
-            os.system("xdg-open ~/Desktop/zubair.html")
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"HTML Opened")
+    data = request.json
 
-        elif self.path == "/close":
-            os.system("pkill firefox")
-            os.system("pkill chromium")
-            os.system("pkill chrome")
+    if data.get("key") != SECRET_KEY:
+        return {"error": "Unauthorized"}, 403
 
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b"Browser Closed")
+    cmd = data.get("command")
 
-        else:
-            self.send_response(404)
-            self.end_headers()
+    print("Received:", cmd)
 
-server = HTTPServer((HOST, PORT), MyServer)
+    if cmd == "open":
+        os.system("gnome-terminal &")
 
-print("Server Running...")
-print("Port:", PORT)
+    elif cmd == "close":
+        os.system("pkill gnome-terminal")
 
-server.serve_forever()
+    return {
+        "status": "success",
+        "command": cmd
+    }
+
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        ssl_context=("cert.pem", "key.pem")
+    )
