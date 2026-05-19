@@ -1,25 +1,20 @@
 import requests
 
-IP = "192.168.1.5"
-PASSWORD = "12345"
+SERVER_IP = "192.168.1.5"
 
-while True:
+url = f"https://{SERVER_IP}:5000/command"
 
-    cmd = input(
-        "Enter command (open/close/restart): "
-    )
+command = input("Enter command (open/close): ")
 
-    try:
+data = {
+    "key": "12345",
+    "command": command
+}
 
-        r = requests.post(
-            f"http://{IP}:5000/cmd",
-            data={
-                "password": PASSWORD,
-                "command": cmd
-            }
-        )
+response = requests.post(
+    url,
+    json=data,
+    verify=False
+)
 
-        print(r.json())
-
-    except Exception as e:
-        print("Error:", e)
+print(response.json())
